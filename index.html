@@ -7,11 +7,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
     <title>Subway Runner 3D</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Orbitron', 'Arial', sans-serif;
             background-color: #000;
             color: #fff;
         }
@@ -36,6 +37,22 @@
             color: #fff;
             text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
             z-index: 5;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        
+        #highScore {
+            position: absolute;
+            top: 50px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+            color: #aaa;
+            text-shadow: 0 0 5px #0ff;
+            z-index: 5;
+            font-family: 'Orbitron', sans-serif;
         }
         .menu {
             position: absolute;
@@ -47,9 +64,11 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.85);
             z-index: 10;
             pointer-events: auto;
+            backdrop-filter: blur(5px);
+            transition: all 0.5s ease;
         }
         .menu h1 {
             font-size: 48px;
@@ -57,6 +76,9 @@
             color: #0ff;
             text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
             animation: glow 1.5s infinite alternate;
+            letter-spacing: 2px;
+            transform: perspective(500px) rotateX(10deg);
+            text-transform: uppercase;
         }
         .menu p {
             font-size: 18px;
@@ -67,18 +89,40 @@
             background-color: transparent;
             border: 2px solid #0ff;
             color: #0ff;
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 18px;
             margin-top: 20px;
             cursor: pointer;
             transition: all 0.3s;
             text-shadow: 0 0 5px #0ff;
             box-shadow: 0 0 10px #0ff;
+            border-radius: 5px;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+        }
+        
+        .menu button:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), transparent);
+            transition: 0.5s;
         }
         .menu button:hover {
             background-color: #0ff;
             color: #000;
-            box-shadow: 0 0 20px #0ff;
+            box-shadow: 0 0 20px #0ff, 0 0 40px #0ff;
+            transform: translateY(-3px);
+        }
+        
+        .menu button:hover:before {
+            left: 100%;
         }
         #gameOverMenu {
             display: none;
@@ -89,10 +133,24 @@
         @keyframes glow {
             from {
                 text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+                filter: brightness(0.9);
             }
             to {
                 text-shadow: 0 0 15px #0ff, 0 0 30px #0ff, 0 0 40px #0ff;
+                filter: brightness(1.1);
             }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
         }
         
         /* Contrôles tactiles */
@@ -110,23 +168,44 @@
         .touchBtn {
             width: 80px;
             height: 80px;
-            background-color: rgba(0, 255, 255, 0.3);
+            background-color: rgba(0, 255, 255, 0.2);
             border: 2px solid #0ff;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #0ff;
-            font-size: 24px;
+            font-size: 28px;
             box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
             -webkit-tap-highlight-color: transparent;
             user-select: none;
             touch-action: manipulation;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .touchBtn:after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0,255,255,0.4) 0%, rgba(0,255,255,0) 70%);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
         
         .touchBtn:active {
             background-color: rgba(0, 255, 255, 0.6);
             transform: scale(0.95);
+        }
+        
+        .touchBtn:active:after {
+            opacity: 1;
+            transform: scale(1);
         }
         
         /* Optimisations pour appareils mobiles */
@@ -154,10 +233,14 @@
 <body>
     <div id="ui">
         <div id="score">Score: 0</div>
+        <div id="highScore">Meilleur: 0</div>
         <div id="startMenu" class="menu">
             <h1>SUBWAY RUNNER 3D</h1>
-            <p>Évitez les obstacles et survivez le plus longtemps possible!</p>
-            <p>Utilisez les flèches GAUCHE et DROITE ou les boutons tactiles pour vous déplacer</p>
+            <div style="position: relative; margin-bottom: 20px;">
+                <p style="animation: float 3s infinite ease-in-out;">Évitez les obstacles et survivez le plus longtemps possible!</p>
+                <p>Utilisez les flèches <span style="color: #0ff;">GAUCHE</span> et <span style="color: #0ff;">DROITE</span> ou les boutons tactiles pour vous déplacer</p>
+                <p id="bestScoreDisplay" style="color: #0ff; margin-top: 15px;">Meilleur score: 0</p>
+            </div>
             <button id="startButton">JOUER</button>
             <button id="settingsButton" style="margin-top: 10px;">PARAMÈTRES</button>
         </div>
@@ -183,16 +266,13 @@
                     <input type="checkbox" id="skyToggle" checked> Ciel et étoiles
                 </label>
             </div>
-            <div style="margin-bottom: 20px;">
-                <label>
-                    <input type="checkbox" id="buildingsToggle" checked> Bâtiments
-                </label>
-            </div>
+            <!-- Option des bâtiments supprimée car remplacée par un fond 2D -->
             <button id="saveSettingsButton">SAUVEGARDER</button>
             <button id="cancelSettingsButton" style="margin-top: 10px;">ANNULER</button>
         </div>
         <div id="touchControls">
             <div id="leftBtn" class="touchBtn">←</div>
+            <div id="jumpBtn" class="touchBtn" style="bottom: 50%; transform: translateY(50%);">↑</div>
             <div id="rightBtn" class="touchBtn">→</div>
         </div>
         <div id="pauseMenu" class="menu">
@@ -202,13 +282,17 @@
         </div>
         <div id="gameOverMenu" class="menu">
             <h1>GAME OVER</h1>
-            <p id="finalScore">Score: 0</p>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <p id="finalScore" style="font-size: 24px; color: #0ff;">Score: 0</p>
+                <p id="newHighScore" style="color: #ff0; font-size: 20px; margin-top: 10px; display: none;">NOUVEAU RECORD !</p>
+                <p id="gameOverHighScore">Meilleur score: 0</p>
+            </div>
             <button id="restartButton">REJOUER</button>
             <button id="quitGameButton">QUITTER</button>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="subway_runner_3d.js"></script>
+    <script src="index.js"></script>
 </body>
 </html>
